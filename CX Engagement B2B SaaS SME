@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseFlow — Customer Engagement Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --primary-dark: #3730A3;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #06B6D4;
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --text: #1E293B;
+            --text-secondary: #64748B;
+            --border: #E2E8F0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: var(--primary-dark);
+            color: white;
+            padding: 24px 0;
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-brand {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 16px;
+        }
+
+        .sidebar-brand h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .sidebar-brand p {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .sidebar-nav li a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav li a:hover,
+        .sidebar-nav li a.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: var(--primary-light);
+        }
+
+        .sidebar-nav li a svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            padding: 16px 24px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.5;
+        }
+
+        /* Main Content */
+        .main {
+            margin-left: 260px;
+            padding: 24px 32px;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-title h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .header-title p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Filters */
+        .filters-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: var(--surface);
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text);
+            background: white;
+            min-width: 150px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+        }
+
+        .filter-reset {
+            margin-left: auto;
+            padding: 8px 14px;
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .filter-reset:hover {
+            text-decoration: underline;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .kpi-card .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .kpi-card .kpi-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .kpi-card .kpi-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kpi-card .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .kpi-card .kpi-change {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .kpi-change.positive { color: var(--success); }
+        .kpi-change.negative { color: var(--danger); }
+        .kpi-change.neutral { color: var(--text-secondary); }
+
+        /* Section Titles */
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        /* Chart Containers */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .chart-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+
+        .chart-card .chart-wrapper {
+            position: relative;
+            height: 260px;
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Customer Journey */
+        .journey-container {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .journey-stages {
+            display: flex;
+            gap: 0;
+            position: relative;
+            overflow-x: auto;
+            padding: 20px 0;
+        }
+
+        .journey-stage {
+            flex: 1;
+            min-width: 160px;
+            text-align: center;
+            position: relative;
+            padding: 0 12px;
+        }
+
+        .journey-stage::after {
+            content: '';
+            position: absolute;
+            top: 24px;
+            right: -50%;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary), var(--primary-light));
+            z-index: 0;
+        }
+
+        .journey-stage:last-child::after {
+            display: none;
+        }
+
+        .journey-stage .stage-dot {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-weight: 700;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 4px 12px rgba(79,70,229,0.3);
+        }
+
+        .journey-stage .stage-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .journey-stage .stage-metric {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .journey-stage .stage-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Retention Table */
+        .table-container {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background: #F8FAFC;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: #D1FAE5; color: #065F46; }
+        .badge-warning { background: #FEF3C7; color: #92400E; }
+        .badge-danger { background: #FEE2E2; color: #991B1B; }
+        .badge-info { background: #CFFAFE; color: #155E75; }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        /* At-Risk Indicators */
+        .risk-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .risk-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .risk-dot.high { background: var(--danger); }
+        .risk-dot.medium { background: var(--warning); }
+        .risk-dot.low { background: var(--success); }
+
+        /* Communication Cards */
+        .comm-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .comm-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .comm-card .comm-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .comm-card .comm-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .comm-card .comm-trend {
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .comm-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main {
+                margin-left: 0;
+            }
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .comm-grid {
+                grid-template-columns: 1fr;
+            }
+            .filters-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 3px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .delay-4 { animation-delay: 0.4s; opacity: 0; }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <h1>PulseFlow</h1>
+        <p>Workflow Automation</p>
+    </div>
+    <div class="sidebar-section">Analytics</div>
+    <ul class="sidebar-nav">
+        <li><a href="#" class="active">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Engagement Overview
+        </a></li>
+        <li><a href="#">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            Customer Journey
+        </a></li>
+        <li><a href="#">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Communications
+        </a></li>
+        <li><a href="#">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            Retention Signals
+        </a></li>
+    </ul>
+    <div class="sidebar-section">Segments</div>
+    <ul class="sidebar-nav">
+        <li><a href="#">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            Enterprise
+        </a></li>
+        <li><a href="#">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Mid-Market
+        </a></li>
+        <li><a href="#">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            Startup
+        </a></li>
+    </ul>
+    <div class="sidebar-section">Settings</div>
+    <ul class="sidebar-nav">
+        <li><a href="#">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Configuration
+        </a></li>
+    </ul>
+</aside>
+
+<!-- Main Content -->
+<main class="main">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-title">
+            <h2>Customer Engagement Dashboard</h2>
+            <p>PulseFlow — Workflow Automation & Team Collaboration Platform</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="exportData()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Export
+            </button>
+            <button class="btn btn-primary" onclick="refreshData()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Interactive Filters -->
+    <div class="filters-bar animate-in">
+        <div class="filter-group">
+            <label>Date Range</label>
+            <select id="filterDateRange" onchange="applyFilters()">
+                <option value="7d">Last 7 Days</option>
+                <option value="30d" selected>Last 30 Days</option>
+                <option value="90d">Last 90 Days</option>
+                <option value="6m">Last 6 Months</option>
+                <option value="1y">Last Year</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Customer Segment</label>
+            <select id="filterSegment" onchange="applyFilters()">
+                <option value="all">All Segments</option>
+                <option value="enterprise">Enterprise (200+ seats)</option>
+                <option value="midmarket">Mid-Market (50-199 seats)</option>
+                <option value="startup">Startup (1-49 seats)</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>User Cohort</label>
+            <select id="filterCohort" onchange="applyFilters()">
+                <option value="all">All Cohorts</option>
+                <option value="new">New (0-30 days)</option>
+                <option value="active">Active (31-90 days)</option>
+                <option value="mature">Mature (91-365 days)</option>
+                <option value="veteran">Veteran (365+ days)</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Plan Tier</label>
+            <select id="filterPlan" onchange="applyFilters()">
+                <option value="all">All Plans</option>
+                <option value="starter">Starter</option>
+                <option value="professional">Professional</option>
+                <option value="enterprise">Enterprise</option>
+            </select>
+        </div>
+        <button class="filter-reset" onclick="resetFilters()">Reset Filters</button>
+    </div>
+
+    <!-- KPI Cards - Engagement Metrics -->
+    <h3 class="section-title">Engagement Metrics</h3>
+    <div class="kpi-grid animate-in delay-1">
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">DAU/MAU Ratio</span>
+                <div class="kpi-icon" style="background:#EEF2FF;">
+                    <svg width="18" height="18" fill="none" stroke="#4F46E5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value" id="kpiDauMau">38.2%</div>
+            <div class="kpi-change positive">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                +3.1% vs last period
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Avg Session Duration</span>
+                <div class="kpi-icon" style="background:#ECFDF5;">
+                    <svg width="18" height="18" fill="none" stroke="#10B981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value" id="kpiSessionDuration">14.7m</div>
+            <div class="kpi-change positive">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                +1.2m vs last period
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Feature Adoption Rate</span>
+                <div class="kpi-icon" style="background:#FEF3C7;">
+                    <svg width="18" height="18" fill="none" stroke="#F59E0B" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value" id="kpiFeatureAdoption">67.4%</div>
+            <div class="kpi-change positive">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                +5.8% vs last period
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Active Users</span>
+                <div class="kpi-icon" style="background:#CFFAFE;">
+                    <svg width="18" height="18" fill="none" stroke="#06B6D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value" id="kpiActiveUsers">2,847</div>
+            <div class="kpi-change positive">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                +12.3% vs last period
+            </div>
+        </div>
+    </div>
+
+    <!-- Engagement Charts -->
+    <div class="charts-grid animate-in delay-2">
+        <div class="chart-card">
+            <h3>DAU/MAU Ratio Trend</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartDauMau"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Session Duration Distribution</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartSessionDuration"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Feature Adoption by Module</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartFeatureAdoption"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Weekly Active Users by Segment</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartWAU"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Journey -->
+    <h3 class="section-title">Customer Journey</h3>
+    <div class="journey-container animate-in delay-2">
+        <div class="journey-stages">
+            <div class="journey-stage">
+                <div class="stage-dot">1</div>
+                <div class="stage-name">Sign-Up</div>
+                <div class="stage-metric">100%</div>
+                <div class="stage-desc">All new accounts</div>
+            </div>
+            <div class="journey-stage">
+                <div class="stage-dot">2</div>
+                <div class="stage-name">Activation</div>
+                <div class="stage-metric" id="journeyActivation">72.4%</div>
+                <div class="stage-desc">Completed onboarding</div>
+            </div>
+            <div class="journey-stage">
+                <div class="stage-dot">3</div>
+                <div class="stage-name">First Value</div>
+                <div class="stage-metric" id="journeyFirstValue">58.1%</div>
+                <div class="stage-desc">Avg 3.2 days TTV</div>
+            </div>
+            <div class="journey-stage">
+                <div class="stage-dot">4</div>
+                <div class="stage-name">Habit Loop</div>
+                <div class="stage-metric" id="journeyHabit">41.6%</div>
+                <div class="stage-desc">3+ sessions/week</div>
+            </div>
+            <div class="journey-stage">
+                <div class="stage-dot">5</div>
+                <div class="stage-name">Expansion</div>
+                <div class="stage-metric" id="journeyExpansion">28.3%</div>
+                <div class="stage-desc">Added modules/seats</div>
+            </div>
+            <div class="journey-stage">
+                <div class="stage-dot">6</div>
+                <div class="stage-name">Advocacy</div>
+                <div class="stage-metric" id="journeyAdvocacy">14.7%</div>
+                <div class="stage-desc">Referrals & reviews</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Journey Metrics Charts -->
+    <div class="charts-grid animate-in delay-3">
+        <div class="chart-card">
+            <h3>Activation Rate Over Time</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartActivation"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Time-to-Value Distribution (Days)</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartTTV"></canvas>
+            </div>
+        </div>
+        <div class="chart-card full-width">
+            <h3>Milestone Completion Funnel</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartMilestones"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Communication Effectiveness -->
+    <h3 class="section-title">Communication Effectiveness</h3>
+    <div class="comm-grid animate-in delay-3">
+        <div class="comm-card">
+            <div class="comm-label">Email Open Rate</div>
+            <div class="comm-value" style="color: var(--primary);" id="commEmailOpen">42.8%</div>
+            <div class="comm-trend positive" style="color: var(--success);">+2.4% from last month</div>
+        </div>
+        <div class="comm-card">
+            <div class="comm-label">In-App Message CTR</div>
+            <div class="comm-value" style="color: var(--info);" id="commInAppCTR">18.6%</div>
+            <div class="comm-trend positive" style="color: var(--success);">+1.8% from last month</div>
+        </div>
+        <div class="comm-card">
+            <div class="comm-label">Support Tickets (Open)</div>
+            <div class="comm-value" style="color: var(--warning);" id="commTickets">127</div>
+            <div class="comm-trend negative" style="color: var(--danger);">+14 from last month</div>
+        </div>
+    </div>
+
+    <div class="charts-grid animate-in delay-3">
+        <div class="chart-card">
+            <h3>Email Campaign Performance</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartEmailPerf"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Support Ticket Trends</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartTickets"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Retention Signals -->
+    <h3 class="section-title">Retention Signals</h3>
+    <div class="kpi-grid animate-in delay-4">
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Avg Login Frequency</span>
+                <div class="kpi-icon" style="background:#EEF2FF;">
+                    <svg width="18" height="18" fill="none" stroke="#4F46E5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value" id="kpiLoginFreq">4.3/wk</div>
+            <div class="kpi-change positive">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                +0.4 vs last period
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Engagement Score</span>
+                <div class="kpi-icon" style="background:#ECFDF5;">
+                    <svg width="18" height="18" fill="none" stroke="#10B981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value" id="kpiEngScore">74/100</div>
+            <div class="kpi-change positive">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                +6 pts vs last period
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">At-Risk Accounts</span>
+                <div class="kpi-icon" style="background:#FEE2E2;">
+                    <svg width="18" height="18" fill="none" stroke="#EF4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value" id="kpiAtRisk">23</div>
+            <div class="kpi-change negative">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"/></svg>
+                +5 vs last period
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header">
+                <span class="kpi-label">Net Retention Rate</span>
+                <div class="kpi-icon" style="background:#CFFAFE;">
+                    <svg width="18" height="18" fill="none" stroke="#06B6D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value" id="kpiNRR">112%</div>
+            <div class="kpi-change positive">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"/></svg>
+                +3% vs last period
+            </div>
+        </div>
+    </div>
+
+    <!-- Retention Charts -->
+    <div class="charts-grid animate-in delay-4">
+        <div class="chart-card">
+            <h3>Login Frequency Distribution</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartLoginFreq"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Engagement Score by Segment</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartEngScore"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- At-Risk Accounts Table -->
+    <div class="table-container animate-in delay-4">
+        <h3 style="font-size:14px; font-weight:600; margin-bottom:16px;">At-Risk Account Indicators</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Segment</th>
+                    <th>Engagement Score</th>
+                    <th>Last Login</th>
+                    <th>Login Trend</th>
+                    <th>Risk Level</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="riskTableBody">
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+// ============================================================
+// DATA LAYER — Simulated data for PulseFlow B2B SaaS Dashboard
+// Company: PulseFlow — Workflow Automation & Team Collaboration
+// Segments: Enterprise (200+ seats), Mid-Market (50-199), Startup (1-49)
+// Offerings: Workflow Builder, Task Automation, Team Inbox, Analytics, Integrations
+// ============================================================
+
+const DATA = {
+    all: {
+        dauMau: 38.2, sessionDuration: 14.7, featureAdoption: 67.4, activeUsers: 2847,
+        loginFreq: 4.3, engScore: 74, atRisk: 23, nrr: 112,
+        emailOpen: 42.8, inAppCTR: 18.6, tickets: 127,
+        activation: 72.4, firstValue: 58.1, habit: 41.6, expansion: 28.3, advocacy: 14.7
+    },
+    enterprise: {
+        dauMau: 45.6, sessionDuration: 22.3, featureAdoption: 81.2, activeUsers: 842,
+        loginFreq: 5.8, engScore: 86, atRisk: 4, nrr: 124,
+        emailOpen: 51.2, inAppCTR: 22.4, tickets: 34,
+        activation: 88.1, firstValue: 74.2, habit: 62.5, expansion: 45.1, advocacy: 22.3
+    },
+    midmarket: {
+        dauMau: 36.8, sessionDuration: 13.5, featureAdoption: 64.7, activeUsers: 1203,
+        loginFreq: 4.1, engScore: 71, atRisk: 11, nrr: 108,
+        emailOpen: 40.3, inAppCTR: 17.8, tickets: 56,
+        activation: 70.6, firstValue: 55.8, habit: 38.4, expansion: 24.7, advocacy: 12.1
+    },
+    startup: {
+        dauMau: 31.4, sessionDuration: 9.8, featureAdoption: 52.3, activeUsers: 802,
+        loginFreq: 3.2, engScore: 58, atRisk: 8, nrr: 96,
+        emailOpen: 36.1, inAppCTR: 15.2, tickets: 37,
+        activation: 61.3, firstValue: 44.7, habit: 29.8, expansion: 15.2, advocacy: 8.4
+    }
+};
+
+const riskAccounts = [
+    { name: 'Nextera Solutions', segment: 'Enterprise', score: 32, lastLogin: '12 days ago', trend: -45, risk: 'high' },
+    { name: 'CloudBridge Inc', segment: 'Mid-Market', score: 38, lastLogin: '8 days ago', trend: -38, risk: 'high' },
+    { name: 'DataVault Labs', segment: 'Startup', score: 41, lastLogin: '6 days ago', trend: -32, risk: 'high' },
+    { name: 'Meridian Tech', segment: 'Mid-Market', score: 45, lastLogin: '5 days ago', trend: -28, risk: 'medium' },
+    { name: 'Apex Workflows', segment: 'Enterprise', score: 48, lastLogin: '4 days ago', trend: -22, risk: 'medium' },
+    { name: 'StreamOps Co', segment: 'Startup', score: 51, lastLogin: '3 days ago', trend: -18, risk: 'medium' },
+    { name: 'Pinnacle SaaS', segment: 'Mid-Market', score: 54, lastLogin: '3 days ago', trend: -15, risk: 'medium' },
+    { name: 'Quantum Teams', segment: 'Startup', score: 56, lastLogin: '2 days ago', trend: -12, risk: 'low' },
+    { name: 'Forge Digital', segment: 'Enterprise', score: 58, lastLogin: '2 days ago', trend: -10, risk: 'low' },
+    { name: 'Velocity Works', segment: 'Mid-Market', score: 59, lastLogin: '1 day ago', trend: -8, risk: 'low' },
+];
+
+// Chart instances
+let charts = {};
+
+// ============================================================
+// CHART INITIALIZATION
+// ============================================================
+
+function initCharts() {
+    const defaultFont = { family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", size: 11 };
+    Chart.defaults.font = defaultFont;
+    Chart.defaults.color = '#64748B';
+
+    // DAU/MAU Trend
+    const dauMauCtx = document.getElementById('chartDauMau').getContext('2d');
+    charts.dauMau = new Chart(dauMauCtx, {
+        type: 'line',
+        data: {
+            labels: generateDateLabels(30),
+            datasets: [{
+                label: 'DAU/MAU %',
+                data: generateTrendData(30, 35, 42, 0.3),
+                borderColor: '#4F46E5',
+                backgroundColor: 'rgba(79,70,229,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 7 } },
+                y: { min: 25, max: 50, ticks: { callback: v => v + '%' }, grid: { color: '#F1F5F9' } }
+            }
+        }
+    });
+
+    // Session Duration
+    const sessionCtx = document.getElementById('chartSessionDuration').getContext('2d');
+    charts.session = new Chart(sessionCtx, {
+        type: 'bar',
+        data: {
+            labels: ['0-5m', '5-10m', '10-15m', '15-20m', '20-30m', '30m+'],
+            datasets: [{
+                label: 'Users',
+                data: [320, 580, 890, 620, 310, 127],
+                backgroundColor: ['#C7D2FE', '#A5B4FC', '#818CF8', '#6366F1', '#4F46E5', '#3730A3'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: '#F1F5F9' } }
+            }
+        }
+    });
+
+    // Feature Adoption
+    const featureCtx = document.getElementById('chartFeatureAdoption').getContext('2d');
+    charts.feature = new Chart(featureCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Workflow Builder', 'Task Automation', 'Team Inbox', 'Analytics', 'Integrations'],
+            datasets: [{
+                data: [89, 76, 72, 58, 43],
+                backgroundColor: ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'],
+                borderWidth: 0,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { position: 'right', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle' } }
+            }
+        }
+    });
+
+    // WAU by Segment
+    const wauCtx = document.getElementById('chartWAU').getContext('2d');
+    charts.wau = new Chart(wauCtx, {
+        type: 'line',
+        data: {
+            labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'],
+            datasets: [
+                { label: 'Enterprise', data: [780, 810, 825, 840, 830, 855, 842, 860], borderColor: '#4F46E5', tension: 0.4, pointRadius: 3, borderWidth: 2 },
+                { label: 'Mid-Market', data: [1100, 1120, 1150, 1180, 1160, 1190, 1203, 1220], borderColor: '#06B6D4', tension: 0.4, pointRadius: 3, borderWidth: 2 },
+                { label: 'Startup', data: [720, 740, 755, 770, 780, 790, 802, 815], borderColor: '#10B981', tension: 0.4, pointRadius: 3, borderWidth: 2 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', padding: 16 } } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: '#F1F5F9' } }
+            }
+        }
+    });
+
+    // Activation Rate
+    const actCtx = document.getElementById('chartActivation').getContext('2d');
+    charts.activation = new Chart(actCtx, {
+        type: 'line',
+        data: {
+            labels: generateDateLabels(12, 'month'),
+            datasets: [{
+                label: 'Activation Rate',
+                data: [62, 64, 65, 67, 68, 69, 70, 69, 71, 72, 71, 72.4],
+                borderColor: '#10B981',
+                backgroundColor: 'rgba(16,185,129,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { min: 55, max: 80, ticks: { callback: v => v + '%' }, grid: { color: '#F1F5F9' } }
+            }
+        }
+    });
+
+    // Time-to-Value
+    const ttvCtx = document.getElementById('chartTTV').getContext('2d');
+    charts.ttv = new Chart(ttvCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7', '7+'],
+            datasets: [{
+                label: 'Users reaching first value',
+                data: [180, 340, 520, 280, 160, 90, 60, 45],
+                backgroundColor: '#06B6D4',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: '#F1F5F9' } }
+            }
+        }
+    });
+
+    // Milestone Completion Funnel
+    const mileCtx = document.getElementById('chartMilestones').getContext('2d');
+    charts.milestones = new Chart(mileCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Account Created', 'Profile Setup', 'First Workflow', 'Team Invited', 'Automation Active', 'Integration Added', 'Advanced Analytics'],
+            datasets: [{
+                label: 'Completion %',
+                data: [100, 91, 78, 65, 52, 38, 24],
+                backgroundColor: function(ctx) {
+                    const gradient = ctx.chart.ctx.createLinearGradient(0, 0, ctx.chart.width, 0);
+                    gradient.addColorStop(0, '#4F46E5');
+                    gradient.addColorStop(1, '#06B6D4');
+                    return gradient;
+                },
+                borderRadius: 6
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#F1F5F9' } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+
+    // Email Performance
+    const emailCtx = document.getElementById('chartEmailPerf').getContext('2d');
+    charts.email = new Chart(emailCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Onboarding', 'Feature Tips', 'Re-engagement', 'Newsletter', 'Product Updates', 'NPS Survey'],
+            datasets: [
+                { label: 'Open Rate', data: [68, 52, 44, 38, 56, 41], backgroundColor: '#4F46E5', borderRadius: 4 },
+                { label: 'Click Rate', data: [24, 18, 12, 8, 22, 14], backgroundColor: '#06B6D4', borderRadius: 4 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', padding: 16 } } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { ticks: { callback: v => v + '%' }, grid: { color: '#F1F5F9' } }
+            }
+        }
+    });
+
+    // Support Tickets
+    const ticketCtx = document.getElementById('chartTickets').getContext('2d');
+    charts.tickets = new Chart(ticketCtx, {
+        type: 'line',
+        data: {
+            labels: generateDateLabels(12, 'month'),
+            datasets: [
+                { label: 'Opened', data: [95, 102, 88, 110, 98, 115, 105, 120, 112, 118, 125, 127], borderColor: '#EF4444', tension: 0.4, pointRadius: 3, borderWidth: 2 },
+                { label: 'Resolved', data: [90, 98, 92, 105, 100, 108, 110, 115, 108, 120, 118, 122], borderColor: '#10B981', tension: 0.4, pointRadius: 3, borderWidth: 2 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', padding: 16 } } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: '#F1F5F9' } }
+            }
+        }
+    });
+
+    // Login Frequency
+    const loginCtx = document.getElementById('chartLoginFreq').getContext('2d');
+    charts.login = new Chart(loginCtx, {
+        type: 'bar',
+        data: {
+            labels: ['<1/wk', '1-2/wk', '3-4/wk', '5-6/wk', 'Daily', 'Multiple/day'],
+            datasets: [{
+                label: 'Accounts',
+                data: [185, 420, 780, 640, 520, 302],
+                backgroundColor: ['#FEE2E2', '#FEF3C7', '#D1FAE5', '#CFFAFE', '#C7D2FE', '#818CF8'],
+                borderColor: ['#EF4444', '#F59E0B', '#10B981', '#06B6D4', '#6366F1', '#4F46E5'],
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: '#F1F5F9' } }
+            }
+        }
+    });
+
+    // Engagement Score by Segment
+    const engCtx = document.getElementById('chartEngScore').getContext('2d');
+    charts.engScore = new Chart(engCtx, {
+        type: 'radar',
+        data: {
+            labels: ['Login Freq', 'Session Depth', 'Feature Use', 'Collaboration', 'Content Created', 'Integrations'],
+            datasets: [
+                { label: 'Enterprise', data: [92, 85, 88, 90, 78, 72], borderColor: '#4F46E5', backgroundColor: 'rgba(79,70,229,0.1)', pointBackgroundColor: '#4F46E5', borderWidth: 2 },
+                { label: 'Mid-Market', data: [72, 68, 65, 70, 62, 55], borderColor: '#06B6D4', backgroundColor: 'rgba(6,182,212,0.1)', pointBackgroundColor: '#06B6D4', borderWidth: 2 },
+                { label: 'Startup', data: [55, 50, 48, 52, 45, 38], borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.1)', pointBackgroundColor: '#10B981', borderWidth: 2 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', padding: 16 } } },
+            scales: {
+                r: { min: 0, max: 100, ticks: { stepSize: 20, display: false }, grid: { color: '#E2E8F0' }, pointLabels: { font: { size: 10 } } }
+            }
+        }
+    });
+}
+
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+
+function generateDateLabels(count, type = 'day') {
+    const labels = [];
+    const now = new Date();
+    for (let i = count - 1; i >= 0; i--) {
+        const d = new Date(now);
+        if (type === 'day') {
+            d.setDate(d.getDate() - i);
+            labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        } else {
+            d.setMonth(d.getMonth() - i);
+            labels.push(d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+        }
+    }
+    return labels;
+}
+
+function generateTrendData(count, min, max, volatility) {
+    const data = [];
+    let current = (min + max) / 2;
+    for (let i = 0; i < count; i++) {
+        current += (Math.random() - 0.45) * (max - min) * volatility;
+        current = Math.max(min, Math.min(max, current));
+        data.push(parseFloat(current.toFixed(1)));
+    }
+    return data;
+}
+
+function populateRiskTable() {
+    const tbody = document.getElementById('riskTableBody');
+    tbody.innerHTML = riskAccounts.map(acc => `
+        <tr>
+            <td><strong>${acc.name}</strong></td>
+            <td>${acc.segment}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="progress-bar" style="width:80px;">
+                        <div class="fill" style="width:${acc.score}%;background:${acc.score < 40 ? '#EF4444' : acc.score < 55 ? '#F59E0B' : '#10B981'}"></div>
+                    </div>
+                    <span>${acc.score}/100</span>
+                </div>
+            </td>
+            <td>${acc.lastLogin}</td>
+            <td style="color:${acc.trend < -30 ? '#EF4444' : acc.trend < -20 ? '#F59E0B' : '#64748B'}">${acc.trend}%</td>
+            <td>
+                <div class="risk-indicator">
+                    <span class="risk-dot ${acc.risk}"></span>
+                    <span>${acc.risk.charAt(0).toUpperCase() + acc.risk.slice(1)}</span>
+                </div>
+            </td>
+            <td><span class="badge badge-${acc.risk === 'high' ? 'danger' : acc.risk === 'medium' ? 'warning' : 'info'}">${acc.risk === 'high' ? 'Needs Attention' : acc.risk === 'medium' ? 'Monitor' : 'Watchlist'}</span></td>
+        </tr>
+    `).join('');
+}
+
+// ============================================================
+// FILTER LOGIC
+// ============================================================
+
+function applyFilters() {
+    const segment = document.getElementById('filterSegment').value;
+    const cohort = document.getElementById('filterCohort').value;
+    const dateRange = document.getElementById('filterDateRange').value;
+
+    let d = DATA[segment] || DATA.all;
+
+    // Apply cohort modifier
+    let modifier = 1;
+    if (cohort === 'new') modifier = 0.82;
+    else if (cohort === 'active') modifier = 1.05;
+    else if (cohort === 'mature') modifier = 1.12;
+    else if (cohort === 'veteran') modifier = 1.18;
+
+    // Update KPIs
+    document.getElementById('kpiDauMau').textContent = (d.dauMau * modifier).toFixed(1) + '%';
+    document.getElementById('kpiSessionDuration').textContent = (d.sessionDuration * modifier).toFixed(1) + 'm';
+    document.getElementById('kpiFeatureAdoption').textContent = (d.featureAdoption * modifier).toFixed(1) + '%';
+    document.getElementById('kpiActiveUsers').textContent = Math.round(d.activeUsers * modifier).toLocaleString();
+    document.getElementById('kpiLoginFreq').textContent = (d.loginFreq * modifier).toFixed(1) + '/wk';
+    document.getElementById('kpiEngScore').textContent = Math.round(d.engScore * modifier) + '/100';
+    document.getElementById('kpiAtRisk').textContent = Math.round(d.atRisk / modifier);
+    document.getElementById('kpiNRR').textContent = Math.round(d.nrr * (modifier > 1 ? 1 + (modifier - 1) * 0.3 : modifier)) + '%';
+    document.getElementById('commEmailOpen').textContent = (d.emailOpen * modifier).toFixed(1) + '%';
+    document.getElementById('commInAppCTR').textContent = (d.inAppCTR * modifier).toFixed(1) + '%';
+    document.getElementById('commTickets').textContent = Math.round(d.tickets / modifier);
+
+    // Update journey
+    document.getElementById('journeyActivation').textContent = (d.activation * modifier).toFixed(1) + '%';
+    document.getElementById('journeyFirstValue').textContent = (d.firstValue * modifier).toFixed(1) + '%';
+    document.getElementById('journeyHabit').textContent = (d.habit * modifier).toFixed(1) + '%';
+    document.getElementById('journeyExpansion').textContent = (d.expansion * modifier).toFixed(1) + '%';
+    document.getElementById('journeyAdvocacy').textContent = (d.advocacy * modifier).toFixed(1) + '%';
+
+    // Update DAU/MAU chart
+    const baseMin = d.dauMau - 8;
+    const baseMax = d.dauMau + 5;
+    let numDays = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : dateRange === '90d' ? 90 : dateRange === '6m' ? 180 : 365;
+    charts.dauMau.data.labels = generateDateLabels(Math.min(numDays, 60));
+    charts.dauMau.data.datasets[0].data = generateTrendData(Math.min(numDays, 60), baseMin * modifier, baseMax * modifier, 0.25);
+    charts.dauMau.update();
+}
+
+function resetFilters() {
+    document.getElementById('filterDateRange').value = '30d';
+    document.getElementById('filterSegment').value = 'all';
+    document.getElementById('filterCohort').value = 'all';
+    document.getElementById('filterPlan').value = 'all';
+    applyFilters();
+}
+
+function refreshData() {
+    // Simulate data refresh with slight randomization
+    DATA.all.dauMau = parseFloat((37 + Math.random() * 3).toFixed(1));
+    DATA.all.sessionDuration = parseFloat((13.5 + Math.random() * 2.5).toFixed(1));
+    DATA.all.activeUsers = Math.round(2750 + Math.random() * 200);
+    applyFilters();
+
+    // Visual feedback
+    document.querySelectorAll('.kpi-card').forEach(card => {
+        card.style.transform = 'scale(0.98)';
+        setTimeout(() => card.style.transform = '', 200);
+    });
+}
+
+function exportData() {
+    const csvContent = "data:text/csv;charset=utf-8," +
+        "Metric,Value\n" +
+        `DAU/MAU Ratio,${document.getElementById('kpiDauMau').textContent}\n` +
+        `Session Duration,${document.getElementById('kpiSessionDuration').textContent}\n` +
+        `Feature Adoption,${document.getElementById('kpiFeatureAdoption').textContent}\n` +
+        `Active Users,${document.getElementById('kpiActiveUsers').textContent}\n` +
+        `Login Frequency,${document.getElementById('kpiLoginFreq').textContent}\n` +
+        `Engagement Score,${document.getElementById('kpiEngScore').textContent}\n` +
+        `At-Risk Accounts,${document.getElementById('kpiAtRisk').textContent}\n` +
+        `Net Retention Rate,${document.getElementById('kpiNRR').textContent}\n` +
+        `Email Open Rate,${document.getElementById('commEmailOpen').textContent}\n` +
+        `In-App CTR,${document.getElementById('commInAppCTR').textContent}\n` +
+        `Support Tickets,${document.getElementById('commTickets').textContent}\n`;
+
+    const link = document.createElement('a');
+    link.setAttribute('href', encodeURI(csvContent));
+    link.setAttribute('download', 'pulseflow_engagement_report.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    initCharts();
+    populateRiskTable();
+});
+</script>
+</body>
+</html>
